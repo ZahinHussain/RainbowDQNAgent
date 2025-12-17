@@ -3,7 +3,7 @@
 
 
 
-from rainbow_agent import DQNAgent
+from rainbowdqn_agent import RainbowDQNAgent
 import numpy as np
 
 
@@ -18,10 +18,10 @@ def main():
         "tau": 0.005,
         "lr": 1e-3,
         "num_episodes": 500,
-        "env_name": "LunarLander-v3"
+        "env_name": "ALE/Pong-v5"
     }
 
-    agent = DQNAgent("LunarLander-v3", config)
+    agent = RainbowDQNAgent("ALE/Pong-v5", config)
 
     # Train
     agent.train(max_frames=1400, live_plot_enabled=False, verbose=True)

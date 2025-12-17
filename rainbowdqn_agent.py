@@ -1,21 +1,17 @@
-from datetime import time
-import gym
-from gym.wrappers.atari_preprocessing import AtariPreprocessing
-from gym.wrappers.frame_stack import FrameStack
-
-
-import torch
-from network import C51NoisyDuelingCNN
-from distributed import C51Distribution
-from per import NStepPrioritizedReplayBuffer
-from matplotlib import pyplot as plt
-
 import gymnasium as gym
-
-from torch import optim
+from  gymnasium.wrappers import AtariPreprocessing ,FrameStackObservation
+import torch
 import numpy as np
+from distributed import C51Distribution
+from network import C51NoisyDuelingCNN
+from datetime import datetime
+import ale_py
+from per import NStepPrioritizedReplayBuffer
+import time
 
-class DQNAgent:
+import torch.optim as optim
+from matplotlib import pyplot as plt
+class RainbowDQNAgent:
     def __init__(self, env_id, config):
 
 
@@ -28,18 +24,29 @@ class DQNAgent:
         self.lr           = config["lr"]
 
 
-        base_env = gym.make(env_id, frameskip=1)
+        
+        gym.register_envs(ale_py)
 
-        env = AtariPreprocessing(
+        base_env = gym.make(env_id, frameskip=1)
+        self.env = AtariPreprocessing(
             base_env,
             grayscale_obs=True,
-            scale_obs=True,     # Normalize to [0,1]
+            scale_obs=True,
             frame_skip=4,
             screen_size=84
         )
 
-        env = FrameStack(env, num_stack=4)
-        self.env = env
+        self.env = FrameStackObservation(self.env, stack_size=4)
+
+
+
+  
+
+
+
+
+
+
 
         # Observation shape = (4, 84, 84)
         self.obs_shape = self.env.observation_space.shape
@@ -175,21 +182,26 @@ class DQNAgent:
         self.policy_net.reset_noise()
         self.target_net.reset_noise()
 
-        # Current dist
+       # Current state–action return distribution Z(s, a)
         dist = self.policy_net(states)
         dist_a = dist[range(states.size(0)), actions.squeeze()]
 
-        # Next action chosen by policy net (double DQN)
+        # Compute TD target distribution Phi(TZ)(s, a)
         with torch.no_grad():
+            # 1. Action selection using expected returns (Double DQN)
             next_dist_policy = self.policy_net(next_states)
             next_q = self.c51.expectation(next_dist_policy)
             next_actions = next_q.argmax(dim=1)
 
+            # 2. Next-state return distribution Z(s', a')
             next_dist_target = self.target_net(next_states)
             next_dist_a = next_dist_target[range(states.size(0)), next_actions]
 
-            # C51 projection
-            target_dist = self.c51.project(next_dist_a, rewards, dones, gammas)
+            # 3. Bellman shift of the atom support:
+            z_j_shifted = self.c51.bellman_support(rewards, dones, gammas)
+
+            # 4. TD target distribution:
+            target_dist = self.c51.project_distribution(next_dist_a, z_j_shifted)
 
         # Loss
         loss_elem = -(target_dist * (dist_a + 1e-8).log()).sum(dim=1)
@@ -342,4 +354,3 @@ class DQNAgent:
 
         env.close()
         return episode_rewards
-
