@@ -11,6 +11,9 @@ import time
 
 import torch.optim as optim
 from matplotlib import pyplot as plt
+
+
+
 class RainbowDQNAgent:
     def __init__(self, env_id, config):
 
@@ -24,29 +27,18 @@ class RainbowDQNAgent:
         self.lr           = config["lr"]
 
 
-        
-        gym.register_envs(ale_py)
-
         base_env = gym.make(env_id, frameskip=1)
-        self.env = AtariPreprocessing(
+
+        env = AtariPreprocessing(
             base_env,
             grayscale_obs=True,
-            scale_obs=True,
+            scale_obs=True,     # Normalize to [0,1]
             frame_skip=4,
             screen_size=84
         )
 
-        self.env = FrameStackObservation(self.env, stack_size=4)
-
-
-
-  
-
-
-
-
-
-
+        env = FrameStackObservation(env, stack_size=4)
+        self.env = env
 
         # Observation shape = (4, 84, 84)
         self.obs_shape = self.env.observation_space.shape
@@ -182,26 +174,21 @@ class RainbowDQNAgent:
         self.policy_net.reset_noise()
         self.target_net.reset_noise()
 
-       # Current state–action return distribution Z(s, a)
+        # Current dist
         dist = self.policy_net(states)
         dist_a = dist[range(states.size(0)), actions.squeeze()]
 
-        # Compute TD target distribution Phi(TZ)(s, a)
+        # Next action chosen by policy net (double DQN)
         with torch.no_grad():
-            # 1. Action selection using expected returns (Double DQN)
             next_dist_policy = self.policy_net(next_states)
             next_q = self.c51.expectation(next_dist_policy)
             next_actions = next_q.argmax(dim=1)
 
-            # 2. Next-state return distribution Z(s', a')
             next_dist_target = self.target_net(next_states)
             next_dist_a = next_dist_target[range(states.size(0)), next_actions]
 
-            # 3. Bellman shift of the atom support:
-            z_j_shifted = self.c51.bellman_support(rewards, dones, gammas)
-
-            # 4. TD target distribution:
-            target_dist = self.c51.project_distribution(next_dist_a, z_j_shifted)
+            # C51 projection
+            target_dist = self.c51.project(next_dist_a, rewards, dones, gammas)
 
         # Loss
         loss_elem = -(target_dist * (dist_a + 1e-8).log()).sum(dim=1)
@@ -317,7 +304,7 @@ class RainbowDQNAgent:
             frame_skip=4,
             screen_size=84
         )
-        env = FrameStack(env, num_stack=4)
+        env = FrameStackObservation(env, num_stack=4)
 
         self.policy_net.eval()
         self.target_net.eval()

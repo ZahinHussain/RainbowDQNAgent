@@ -13,12 +13,11 @@ class C51Distribution:
     def expectation(self, dist):
         return (dist * self.support).sum(dim=-1)
 
-    def bellman_support(self, rewards, dones, gammas):
-        z_j = rewards.unsqueeze(1) + (1 - dones.unsqueeze(1)) * gammas.unsqueeze(1) * self.support
-        return z_j.clamp(self.v_min, self.v_max)
+    def project(self, next_dist, rewards, dones, gammas):
+        B = rewards.size(0)
 
-    def project_distribution(self, next_dist, tz):
-        B = next_dist.size(0)
+        tz = rewards + (1 - dones) * gammas * self.support.view(1, -1)
+        tz = tz.clamp(self.v_min, self.v_max)
 
         b = (tz - self.v_min) / self.delta_z
         l = b.floor().long()
