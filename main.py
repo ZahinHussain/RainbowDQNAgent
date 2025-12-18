@@ -1,6 +1,7 @@
 from rainbowdqn_agent import RainbowDQNAgent
 import numpy as np
-from rewards import plot_rewards
+from rewards import plot_rewards, plot_reward_distribution
+
 
 
 def main():
@@ -30,6 +31,16 @@ def main():
     # # Plot rewards after training
     # rewards = np.load("rewards_1765411435.npy")
     # plot_rewards(rewards)
+
+    # Reward distribution (histogram)
+    plot_reward_distribution(
+        agent.reward_history,
+        bins=60,
+        last_n=500,
+        xlim=(-600, 400),
+        title="Rainbow (LunarLander): Reward Distribution (last 500 episodes)",
+        density=True,
+    )
 
     # # Load the model into a new agent for evaluation
     # eval_agent = DQNAgent()
