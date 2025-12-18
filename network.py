@@ -1,4 +1,3 @@
-from numpy import size
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -153,3 +152,165 @@ class C51NoisyDuelingMLP(nn.Module):
         return dist.clamp(min=1e-8)
 
 
+
+
+class NoisyDuelingMLP(nn.Module):
+    def __init__(self, obs_dim, num_actions):
+        super().__init__()
+
+        self.num_actions = num_actions
+        hidden = 128
+
+        self.feature = nn.Sequential(
+            NoisyLinear(obs_dim, hidden),
+            nn.ReLU(),
+            NoisyLinear(hidden, hidden),
+            nn.ReLU(),
+        )
+
+        self.advantage = NoisyLinear(hidden, num_actions)
+        self.value = NoisyLinear(hidden, 1)
+
+    def reset_noise(self):
+        for m in self.modules():
+            if isinstance(m, NoisyLinear):
+                m.reset_noise()
+
+    def forward(self, x):
+        x = self.feature(x)
+
+        adv = self.advantage(x)          # [B, A]
+        val = self.value(x)              # [B, 1]
+
+        q = val + adv - adv.mean(dim=1, keepdim=True)
+        return q
+
+class NoisyDuelingCNN(nn.Module):
+    def __init__(self, num_actions):
+        super().__init__()
+
+        self.num_actions = num_actions
+
+        self.conv = nn.Sequential(
+            nn.Conv2d(4, 32, kernel_size=8, stride=4),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2),
+            nn.ReLU(),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1),
+            nn.ReLU(),
+        )
+
+        conv_out_size = 64 * 7 * 7
+
+        # Advantage head
+        self.advantage = nn.Sequential(
+            NoisyLinear(conv_out_size, 512),
+            nn.ReLU(),
+            NoisyLinear(512, num_actions),
+        )
+
+        # Value head
+        self.value = nn.Sequential(
+            NoisyLinear(conv_out_size, 512),
+            nn.ReLU(),
+            NoisyLinear(512, 1),
+        )
+
+    def reset_noise(self):
+        for m in self.modules():
+            if isinstance(m, NoisyLinear):
+                m.reset_noise()
+
+    def forward(self, x):
+        batch_size = x.size(0)
+
+        x = self.conv(x)
+        x = x.view(batch_size, -1)
+
+        adv = self.advantage(x)            # [B, A]
+        val = self.value(x)                # [B, 1]
+
+        q = val + adv - adv.mean(dim=1, keepdim=True)
+        return q
+
+
+
+class DuelingMLP(nn.Module):
+    def __init__(self, obs_dim, num_actions):
+        super().__init__()
+
+        hidden = 128
+
+        self.feature = nn.Sequential(
+            nn.Linear(obs_dim, hidden),
+            nn.ReLU(),
+            nn.Linear(hidden, hidden),
+            nn.ReLU(),
+        )
+
+        self.advantage = nn.Linear(hidden, num_actions)
+        self.value = nn.Linear(hidden, 1)
+
+    def forward(self, x):
+        x = self.feature(x)
+
+        adv = self.advantage(x)          # [B, A]
+        val = self.value(x)              # [B, 1]
+
+        q = val + adv - adv.mean(dim=1, keepdim=True)
+        return q
+
+class DuelingCNN(nn.Module):
+    def __init__(self, num_actions):
+        super().__init__()
+
+        self.conv = nn.Sequential(
+            nn.Conv2d(4, 32, kernel_size=8, stride=4),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2),
+            nn.ReLU(),
+            nn.Conv2d(64, 64, kernel_size=3, stride=1),
+            nn.ReLU(),
+        )
+
+        conv_out_size = 64 * 7 * 7
+
+        self.advantage = nn.Sequential(
+            nn.Linear(conv_out_size, 512),
+            nn.ReLU(),
+            nn.Linear(512, num_actions),
+        )
+
+        self.value = nn.Sequential(
+            nn.Linear(conv_out_size, 512),
+            nn.ReLU(),
+            nn.Linear(512, 1),
+        )
+
+    def forward(self, x):
+        batch_size = x.size(0)
+
+        x = self.conv(x)
+        x = x.view(batch_size, -1)
+
+        adv = self.advantage(x)
+        val = self.value(x)
+
+        q = val + adv - adv.mean(dim=1, keepdim=True)
+        return q
+
+
+
+class Network(nn.Module):
+    def __init__(self, in_dim: int, out_dim: int):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(in_dim, 128),
+            nn.ReLU(),
+            nn.Linear(128, 128),
+            nn.ReLU(),
+            nn.Linear(128, out_dim),
+        )
+
+    def forward(self, x):
+        return self.net(x)

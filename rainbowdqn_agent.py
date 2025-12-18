@@ -6,7 +6,7 @@ from distributed import C51Distribution
 from network import C51NoisyDuelingCNN, C51NoisyDuelingMLP
 from datetime import datetime
 import ale_py
-from per import NStepPrioritizedReplayBuffer
+from replay_buffer import NStepPrioritizedReplayBuffer
 import time
 import os
 from datetime import datetime
@@ -59,8 +59,8 @@ class RainbowDQNAgent:
 
   
         self.c51 = C51Distribution(
-            v_min=-21,
-            v_max=21,
+            v_min=-200,
+            v_max=300,
             atom_size=51,
             device=self.device
         )
