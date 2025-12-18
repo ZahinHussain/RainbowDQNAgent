@@ -35,3 +35,40 @@ def plot_rewards(rewards, window=100):
     plt.grid(True)
     plt.tight_layout()
     plt.show()
+
+def plot_reward_distribution(
+    rewards,
+    bins=60,
+    last_n=None,
+    xlim=None,
+    title="Reward Distribution (Histogram)",
+    density=True,
+):
+    """Plots a histogram of episode returns to show how performance is distributed over training."""
+    rewards = np.asarray(rewards, dtype=np.float32).reshape(-1)
+
+    if rewards.size == 0:
+        print("No rewards to plot.")
+        return
+
+    if last_n is not None:
+        rewards = rewards[-last_n:]
+
+    plt.figure(figsize=(10, 5))
+    plt.hist(rewards, bins=bins, density=density, alpha=0.85)
+
+    mean = float(np.mean(rewards))
+    plt.axvline(mean, linewidth=2, label=f"Mean = {mean:.1f}")
+
+    plt.title(title)
+    plt.xlabel("Episode Return")
+    plt.ylabel("Density" if density else "Count")
+
+    if xlim is not None:
+        plt.xlim(*xlim)
+
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
