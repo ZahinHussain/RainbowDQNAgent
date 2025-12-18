@@ -178,9 +178,11 @@ class NStepPrioritizedReplayBuffer:
         probs = priorities / total
 
         # Importance-sampling weights & normalise 
+        EPS = 1e-6
+        probs = np.maximum(probs, EPS)
         weights = (self.size * probs) ** (-self.beta)
         weights /= weights.max()
-
+        
         return (
             self.obs[idxs],        
             self.actions[idxs],    

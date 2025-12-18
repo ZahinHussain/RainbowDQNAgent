@@ -59,8 +59,8 @@ class RainbowDQNAgent:
 
   
         self.c51 = C51Distribution(
-            v_min=-200,
-            v_max=300,
+            v_min=0,
+            v_max=500,
             atom_size=51,
             device=self.device
         )

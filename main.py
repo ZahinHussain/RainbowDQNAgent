@@ -13,7 +13,7 @@ def main():
         "tau": 0.005,
         "lr": 1e-3,
         "num_episodes": 1000,
-        "env_name": "LunarLander-v3",     # Lunar.   ALE/Pong-v5
+        "env_name": "CartPole-v1",     # Lunar.   ALE/Pong-v5
     }
 
 
