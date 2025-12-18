@@ -5,7 +5,7 @@ def main():
     config = {
         "batch_size": 32,
         "eps_decay": 2000,
-        "env_name": "LunarLander-v3",
+        "env_name": "CartPole-v1",
     }
 
     env = gym.make(config["env_name"])

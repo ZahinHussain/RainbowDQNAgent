@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import math
 
 class NoisyLinear(nn.Module):
-    def __init__(self, in_features, out_features, std_init=0.5):
+    def __init__(self, in_features, out_features, std_init=0.1):
         super().__init__()
         self.in_features = in_features
         self.out_features = out_features

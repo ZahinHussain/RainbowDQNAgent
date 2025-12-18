@@ -29,6 +29,10 @@ class RainbowDQNAgent:
         self.lr           = config["lr"]
         self.env_id       = config["env_name"]
 
+        self.target_update_type = config.get("target_update_type", "hard")
+        self.target_update_freq = config.get("target_update_freq", 5000)
+        self.learn_steps = 0
+
 
         self.is_atari = self.env_id.startswith("ALE/")
 
@@ -59,9 +63,9 @@ class RainbowDQNAgent:
 
   
         self.c51 = C51Distribution(
-            v_min=0,
-            v_max=500,
-            atom_size=51,
+            v_min=-100,
+            v_max=300,
+            atom_size=31,
             device=self.device
         )
 
@@ -104,7 +108,7 @@ class RainbowDQNAgent:
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=self.lr)
 
         self.memory = NStepPrioritizedReplayBuffer(
-            capacity=10000,
+            capacity=100000,
             obs_shape=self.obs_shape,
             n_step=3,
             gamma=self.gamma
@@ -165,21 +169,47 @@ class RainbowDQNAgent:
             # Learn
             if len(self.memory) >= self.batch_size:
                 self.train_step()
-                self.soft_update()
+                
+                if self.target_update_type == "soft":
+                    self.soft_update()
+                    self.learn_steps += 1
+
+                elif self.target_update_type == "hard":
+                    if self.learn_steps % self.target_update_freq == 0:
+                        self.hard_update()
 
             # Continue or reset episode
             if not done:
                 state = next_state
+                ep = len(self.reward_history)
+                avg_100 = np.mean(self.reward_history[-100:])
             else:
                 self.reward_history.append(episode_reward)
 
                 if verbose:
                     ep = len(self.reward_history)
+                    avg_100 = np.mean(self.reward_history[-100:])
+
+
                     print(f"Episode {ep} | Reward: {episode_reward:.2f}")
 
                 episode_reward = 0
                 state, _ = self.env.reset()
                 state = np.array(state, dtype=np.float32, copy=False)
+
+
+            if ep >= 100 and avg_100 >= 200.0:
+                print("✅ Solved LunarLander! Saving final model and stopping training.")
+                self.solved = True
+
+                ts = int(time.time())
+                self.save_model(os.path.join(self.run_dir, f"model_solved_{ts}.pth"))
+                np.save(
+                    os.path.join(self.run_dir, f"rewards_solved_{ts}.npy"),
+                    np.array(self.reward_history),
+                )
+
+                break
 
             # Auto-save every 30 minutes
             if time.time() - last_save_time >= save_interval:
@@ -239,11 +269,15 @@ class RainbowDQNAgent:
 
         self.optimizer.zero_grad()
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), 10.0)
         self.optimizer.step()
 
         # Update PER priorities
         td = loss_elem.detach().cpu().numpy()
         self.memory.update_priorities(idxs, td)
+
+    def hard_update(self):
+        self.target_net.load_state_dict(self.policy_net.state_dict())
 
     def soft_update(self):
         for name, param in self.policy_net.state_dict().items():
