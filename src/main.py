@@ -33,7 +33,6 @@ def seed_everything(seed: int):
     os.environ["PYTHONHASHSEED"] = str(seed)
 
 def main():
-    seed_everything(77)
 
     config = {
         "env_name": "LunarLander-v3",

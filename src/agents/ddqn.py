@@ -11,7 +11,8 @@ import torch.optim as optim
 from replay_buffer.replay_standard import ReplayBuffer
 from exploration.exploration import LinearEpsilonScheduler
 from envs.envs import make_env
-from networks.network import DuelingMLP
+from networks.DuelingMLP import DuelingMLP
+
 
 
 class DDQNAgent:

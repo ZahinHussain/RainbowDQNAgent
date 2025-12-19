@@ -6,7 +6,8 @@ from datetime import datetime
 from matplotlib import pyplot as plt
 
 from distributed.distributed import C51Distribution
-from networks.network import C51NoisyDuelingCNN, C51NoisyDuelingMLP
+from networks.C51NoisyDuelingCNN import C51NoisyDuelingCNN
+from networks.C51NoisyDuelingMLP import C51NoisyDuelingMLP
 from replay_buffer.per import NStepPrioritizedReplayBuffer
 from envs.envs import make_env
 
