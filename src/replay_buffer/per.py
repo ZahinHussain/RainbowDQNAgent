@@ -133,6 +133,9 @@ class NStepPrioritizedReplayBuffer:
             # Store the n-step transition into replay buffer + SumTree
             self._store(s0, a0, Rn, next_s, dn, g_n)
 
+            self.nstep_buffer.popleft()
+
+
         # Case 2: episode ended
         # When an episode ends, there may still be remaining transitions
         # in the n-step buffer that haven't been stored yet.
