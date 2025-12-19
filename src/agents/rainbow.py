@@ -243,7 +243,6 @@ class RainbowDQNAgent:
 
         self.optimizer.zero_grad()
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), 10.0)
         self.optimizer.step()
 
         self.memory.update_priorities(
