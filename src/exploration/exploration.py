@@ -1,16 +1,20 @@
 import numpy as np
 
-class EpsilonScheduler:
-    def __init__(self, eps_start, eps_end, eps_decay):
+class LinearEpsilonScheduler:
+    def __init__(self, eps_start: float, eps_end: float, decay_steps: int):
         self.eps_start = eps_start
         self.eps_end = eps_end
-        self.eps_decay = eps_decay
-        self.steps = 0
+        self.decay_steps = decay_steps
 
-    def value(self):
-        eps = self.eps_end + (self.eps_start - self.eps_end) * \
-              np.exp(-1.0 * self.steps / self.eps_decay)
-        return eps
+        self.epsilon = eps_start
+        self.decay = (eps_start - eps_end) / decay_steps
+
+    def value(self) -> float:
+        return self.epsilon
 
     def step(self):
-        self.steps += 1
+        self.epsilon = max(
+            self.eps_end,
+            self.epsilon - self.decay
+        )
+

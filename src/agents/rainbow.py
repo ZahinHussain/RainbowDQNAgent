@@ -5,10 +5,10 @@ import os
 from datetime import datetime
 from matplotlib import pyplot as plt
 
-from distributed import C51Distribution
-from network import C51NoisyDuelingCNN, C51NoisyDuelingMLP
-from replay_buffer import NStepPrioritizedReplayBuffer
-from envs import make_env
+from distributed.distributed import C51Distribution
+from networks.network import C51NoisyDuelingCNN, C51NoisyDuelingMLP
+from replay_buffer.per import NStepPrioritizedReplayBuffer
+from envs.envs import make_env
 
 import torch.optim as optim
 
@@ -169,6 +169,30 @@ class RainbowDQNAgent:
 
             if done:
                 self.reward_history.append(episode_reward)
+
+                if verbose:
+                    ep = len(self.reward_history)
+                    avg_100 = np.mean(self.reward_history[-50:])
+                    print(
+                        f"Episode {ep} | "
+                        f"Reward: {episode_reward:.2f} | "
+                        f"Avg Reward (100): {avg_100:.2f} | "
+                    )
+                
+                if ep >= 50 and avg_100 >= 200.0:
+                    print("Solved! Saving final model and stopping training.")
+
+                    self.solved = True
+
+                    ts = int(time.time())
+                    self.save_model(os.path.join(self.run_dir, f"model_solved_{ts}.pth"))
+                    np.save(
+                        os.path.join(self.run_dir, f"rewards_solved_{ts}.npy"),
+                        np.array(self.reward_history),
+                    )
+
+                    break
+
                 episode_reward = 0
                 state, _ = self.env.reset()
                 state = np.asarray(state, dtype=np.float32)

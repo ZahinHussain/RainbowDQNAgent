@@ -8,10 +8,10 @@ from matplotlib import pyplot as plt
 import torch.nn as nn
 import torch.optim as optim
 
-from replay_buffer import NStepPrioritizedReplayBuffer
-from exploration import EpsilonScheduler
-from envs import make_env
-from network import DuelingMLP
+from replay_buffer.replay_standard import ReplayBuffer
+from exploration.exploration import LinearEpsilonScheduler
+from envs.envs import make_env
+from networks.network import DuelingMLP
 
 
 class DDQNAgent:
@@ -24,17 +24,17 @@ class DDQNAgent:
         self.batch_size = config["batch_size"]
         self.gamma = config["gamma"]
         self.lr = config["lr"]
-        self.tau = config["tau"]
+        # self.tau = config["tau"]
 
         # ---- Exploration (ε-greedy) ----
         self.eps_start = config["eps_start"]
         self.eps_end = config["eps_end"]
         self.eps_decay = config["eps_decay"]
 
-        self.epsilon = EpsilonScheduler(
-            self.eps_start,
-            self.eps_end,
-            self.eps_decay
+        self.epsilon = LinearEpsilonScheduler(
+            eps_start=self.eps_start,
+            eps_end=self.eps_end,
+            decay_steps=self.eps_decay
         )
 
         # ---- Environment / Architecture ----
@@ -64,11 +64,10 @@ class DDQNAgent:
         self._setup_networks()
 
         # ---- Replay buffer ----
-        self.memory = NStepPrioritizedReplayBuffer(
-            capacity=self.memory_size,
-            obs_shape=self.obs_shape,
-            n_step=self.n_step,
-            gamma=self.gamma
+        self.memory = ReplayBuffer(
+            obs_dim=self.obs_shape[0],
+            size=self.memory_size,
+            batch_size=self.batch_size
         )
 
         # ---- Logging ----
@@ -98,20 +97,13 @@ class DDQNAgent:
     # Acting
     # =========================
     def select_action(self, state):
-        eps = self.epsilon.value()
-        self.epsilon.step()
-
-        if np.random.rand() < eps:
+        if np.random.rand() < self.epsilon.value():
             return np.random.randint(self.num_actions)
 
-        state_t = torch.tensor(
-            state, dtype=torch.float32, device=self.device
-        ).unsqueeze(0)
-
+        state_t = torch.tensor(state, dtype=torch.float32, device=self.device).unsqueeze(0)
         with torch.no_grad():
-            q_vals = self.policy_net(state_t)
-            return q_vals.argmax(1).item()
-
+            return self.policy_net(state_t).argmax(1).item()
+        
     # =========================
     # Training Loop
     # =========================
@@ -129,7 +121,7 @@ class DDQNAgent:
         frame = 0
         episode_reward = 0
 
-        state, _ = self.env.reset()
+        state, _ = self.env.reset(seed=777)
         state = np.asarray(state, dtype=np.float32)
 
         while frame < max_frames:
@@ -147,6 +139,7 @@ class DDQNAgent:
             if len(self.memory) >= self.batch_size:
                 self.train_step()
                 self.learn_steps += 1
+                self.epsilon.step()
 
                 if self.target_update_type == "soft":
                     self.soft_update()
@@ -159,9 +152,27 @@ class DDQNAgent:
                 
                 if verbose:
                     ep = len(self.reward_history)
-                    avg_100 = np.mean(self.reward_history[-100:])
-                    print(f"Episode {ep}  |Reward: {episode_reward:.2f} | Avg Reward (100): {avg_100:.2f}")
-                    
+                    avg_100 = np.mean(self.reward_history[-20:])
+                    print(
+                        f"Episode {ep} | "
+                        f"Reward: {episode_reward:.2f} | "
+                        f"Avg Reward (100): {avg_100:.2f} | "
+                    )
+                
+                if ep >= 100 and avg_100 >= 450.0:
+                    print("Solved! Saving final model and stopping training.")
+
+                    self.solved = True
+
+                    ts = int(time.time())
+                    self.save_model(os.path.join(self.run_dir, f"model_solved_{ts}.pth"))
+                    np.save(
+                        os.path.join(self.run_dir, f"rewards_solved_{ts}.npy"),
+                        np.array(self.reward_history),
+                    )
+
+                    break
+
                 episode_reward = 0
                 state, _ = self.env.reset()
                 state = np.asarray(state, dtype=np.float32)
@@ -169,9 +180,20 @@ class DDQNAgent:
                 state = next_state
 
             if time.time() - last_save_time >= save_interval:
+
+                # Save model
                 ts = int(time.time())
                 self.save_model(os.path.join(self.run_dir, f"model_{ts}.pth"))
+
+                 # Save rewards
+                np.save(
+                    os.path.join(self.run_dir, f"rewards_{ts}.npy"),
+                    np.array(self.reward_history)
+                )
+
                 last_save_time = time.time()
+
+
 
             if live_plot_enabled and frame % 5000 == 0:
                 self.plot_rewards_live()
@@ -180,35 +202,28 @@ class DDQNAgent:
     # Learning
     # =========================
     def train_step(self):
-        states, actions, rewards, next_states, dones, gammas, idxs, weights = \
-            self.memory.sample(self.batch_size)
+        batch = self.memory.sample_batch()
 
-        states = torch.tensor(states, dtype=torch.float32, device=self.device)
-        actions = torch.tensor(actions, dtype=torch.long, device=self.device).unsqueeze(1)
-        rewards = torch.tensor(rewards, dtype=torch.float32, device=self.device).unsqueeze(1)
-        next_states = torch.tensor(next_states, dtype=torch.float32, device=self.device)
-        dones = torch.tensor(dones, dtype=torch.float32, device=self.device).unsqueeze(1)
-        gammas = torch.tensor(gammas, dtype=torch.float32, device=self.device).unsqueeze(1)
-        weights = torch.tensor(weights, dtype=torch.float32, device=self.device).unsqueeze(1)
+        states = torch.tensor(batch["obs"], dtype=torch.float32, device=self.device)
+        actions = torch.tensor(batch["acts"], dtype=torch.long, device=self.device).unsqueeze(1)
+        rewards = torch.tensor(batch["rews"], dtype=torch.float32, device=self.device).unsqueeze(1)
+        next_states = torch.tensor(batch["next_obs"], dtype=torch.float32, device=self.device)
+        dones = torch.tensor(batch["done"], dtype=torch.float32, device=self.device).unsqueeze(1)
 
         q = self.policy_net(states).gather(1, actions)
 
         with torch.no_grad():
             next_actions = self.policy_net(next_states).argmax(dim=1, keepdim=True)
             next_q = self.target_net(next_states).gather(1, next_actions)
-            target_q = rewards + (1 - dones) * gammas * next_q
+            target_q = rewards + (1.0 - dones) * self.gamma * next_q
 
-        td_error = target_q - q
-        loss = (weights * td_error.pow(2)).mean()
+        loss = nn.functional.smooth_l1_loss(q, target_q)
 
         self.optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.policy_net.parameters(), 10.0)
         self.optimizer.step()
 
-        self.memory.update_priorities(
-            idxs, td_error.abs().detach().cpu().numpy()
-        )
 
     # =========================
     # Target updates
