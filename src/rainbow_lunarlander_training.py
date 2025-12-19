@@ -33,7 +33,8 @@ def seed_everything(seed: int):
     os.environ["PYTHONHASHSEED"] = str(seed)
 
 def main():
-    seed_everything(77)
+    seed = 0
+    seed_everything(seed)
 
     config = {
         "env_name": "LunarLander-v3",
@@ -57,7 +58,7 @@ def main():
 
 
 
-    agent = RainbowDQNAgent(config)
+    agent = RainbowDQNAgent(config, seed=seed)
 
     agent.train(max_frames=1_000_000, verbose=True, save_interval=0.2)
 

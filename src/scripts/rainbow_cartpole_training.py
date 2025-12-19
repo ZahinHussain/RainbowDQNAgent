@@ -33,7 +33,9 @@ def seed_everything(seed: int):
     os.environ["PYTHONHASHSEED"] = str(seed)
 
 def main():
-    seed_everything(77)
+
+    seed = 5
+    seed_everything(seed)
 
     config = {
         "env_name": "CartPole-v1",
@@ -57,9 +59,9 @@ def main():
 
 
 
-    agent = RainbowDQNAgent(config)
+    agent = RainbowDQNAgent(config, seed=seed)
 
-    agent.train(max_frames=1_000_000, verbose=True, save_interval=0.2)
+    agent.train(max_frames=1_000_000, verbose=True, save_interval=10, run_name='two')
 
 
 if __name__ == "__main__":

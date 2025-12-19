@@ -6,7 +6,6 @@ import random
 import numpy as np
 import torch
 
-
 def seed_everything(seed: int):
     # Python RNG
     random.seed(seed)
@@ -34,31 +33,23 @@ def seed_everything(seed: int):
 
 def main():
 
-    config = {
-        "env_name": "LunarLander-v3",
-        "network": "mlp",          
+    
 
-        "batch_size": 32,
-        "gamma": 0.99,
-        "lr": 5e-4,                
-        "tau": 0.05,               
+    ckpt_path = "models/CartPole/DDQN/model_solved_1766145727.pth"
+    checkpoint = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+    rewards = checkpoint["reward_history"]
 
-        "memory_size": 5_000,      
-        "n_step": 3,               
+    print(rewards)
 
-        "v_min": -100,
-        "v_max": 300.0,            
-        "atom_size": 31,           
 
-        "target_update_type": "hard",
-        "target_update_freq": 5000,  
-    }
+    # agent = RainbowDQNAgent(config)
+
+    # agent.train(max_frames=1_000_000, verbose=True, save_interval=0.2)
 
 
 
-    agent = RainbowDQNAgent(config)
 
-    agent.train(max_frames=1_000_000, verbose=True, save_interval=0.2)
+
 
 
 if __name__ == "__main__":

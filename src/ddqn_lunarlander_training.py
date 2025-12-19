@@ -33,7 +33,8 @@ def seed_everything(seed: int):
     os.environ["PYTHONHASHSEED"] = str(seed)
 
 def main():
-    seed_everything(77)
+    seed = 0
+    seed_everything(0)
 
     config = {
         "env_name": "LunarLander-v3",
@@ -54,9 +55,9 @@ def main():
     }
 
 
-    agent = DDQNAgent(config)
+    agent = DDQNAgent(config, seed=seed)
 
-    agent.train(max_frames=1_000_000, verbose=True)
+    agent.train(max_frames=1_000_000, save_interval=0.2 ,verbose=True)
 
 
 if __name__ == "__main__":

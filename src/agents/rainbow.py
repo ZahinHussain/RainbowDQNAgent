@@ -18,7 +18,9 @@ class RainbowDQNAgent:
     # =========================
     # Initialization & Setup
     # =========================
-    def __init__(self, config):
+    def __init__(self, config, seed=5):
+
+        self.seed = seed
 
         # ---- Optimization ----
         self.batch_size = config["batch_size"]
@@ -143,7 +145,7 @@ class RainbowDQNAgent:
         frame = 0
         episode_reward = 0
 
-        state, _ = self.env.reset()
+        state, _ = self.env.reset(seed=self.seed)
         state = np.asarray(state, dtype=np.float32)
 
         while frame < max_frames:
@@ -173,14 +175,14 @@ class RainbowDQNAgent:
 
                 if verbose:
                     ep = len(self.reward_history)
-                    avg_100 = np.mean(self.reward_history[-50:])
+                    avg_100 = np.mean(self.reward_history[-20:])
                     print(
                         f"Episode {ep} | "
                         f"Reward: {episode_reward:.2f} | "
                         f"Avg Reward (100): {avg_100:.2f} | "
                     )
                 
-                if ep >= 50 and avg_100 >= 200.0:
+                if ep >= 20 and avg_100 >= 200.0:
                     print("Solved! Saving final model and stopping training.")
 
                     self.solved = True
@@ -244,6 +246,10 @@ class RainbowDQNAgent:
 
         self.optimizer.zero_grad()
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(
+            self.policy_net.parameters(),
+            max_norm=10.0
+        )
         self.optimizer.step()
 
         self.memory.update_priorities(

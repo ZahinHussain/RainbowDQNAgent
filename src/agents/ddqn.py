@@ -19,7 +19,9 @@ class DDQNAgent:
     # =========================
     # Initialization & Setup
     # =========================
-    def __init__(self, config):
+    def __init__(self, config, seed=5):
+
+        self.seed = seed
 
         # ---- Optimization ----
         self.batch_size = config["batch_size"]
@@ -108,7 +110,7 @@ class DDQNAgent:
     # =========================
     # Training Loop
     # =========================
-    def train(self, max_frames=1_000_000, save_interval=30,
+    def train(self, max_episodes=500, max_frames=1_000_000, save_interval=30,
               live_plot_enabled=False, verbose=False, run_name="default"):
 
         self.run_name = run_name
@@ -122,7 +124,11 @@ class DDQNAgent:
         frame = 0
         episode_reward = 0
 
-        state, _ = self.env.reset(seed=777)
+        episode = 0
+        final_saved = False
+
+
+        state, _ = self.env.reset(seed=self.seed)
         state = np.asarray(state, dtype=np.float32)
 
         while frame < max_frames:
@@ -149,21 +155,20 @@ class DDQNAgent:
                         self.hard_update()
 
             if done:
+                episode += 1
                 self.reward_history.append(episode_reward)
-                
+
                 if verbose:
-                    ep = len(self.reward_history)
                     avg_100 = np.mean(self.reward_history[-20:])
                     print(
-                        f"Episode {ep} | "
+                        f"Episode {episode} | "
                         f"Reward: {episode_reward:.2f} | "
-                        f"Avg Reward (100): {avg_100:.2f} | "
+                        f"Avg Reward (20): {avg_100:.2f}"
                     )
-                
-                if ep >= 100 and avg_100 >= 450.0:
-                    print("Solved! Saving final model and stopping training.")
 
-                    self.solved = True
+                # -------- SOLVED CONDITION --------
+                if episode >= 20 and avg_100 >= 200.0:
+                    print("Solved! Saving final model and stopping training.")
 
                     ts = int(time.time())
                     self.save_model(os.path.join(self.run_dir, f"model_solved_{ts}.pth"))
@@ -172,11 +177,27 @@ class DDQNAgent:
                         np.array(self.reward_history),
                     )
 
+                    final_saved = True
+                    break
+
+                # -------- MAX EPISODES CONDITION --------
+                if episode >= max_episodes:
+                    print("Max episodes reached. Saving final model.")
+
+                    ts = int(time.time())
+                    self.save_model(os.path.join(self.run_dir, f"model_final_{ts}.pth"))
+                    np.save(
+                        os.path.join(self.run_dir, f"rewards_final_{ts}.npy"),
+                        np.array(self.reward_history),
+                    )
+
+                    final_saved = True
                     break
 
                 episode_reward = 0
                 state, _ = self.env.reset()
                 state = np.asarray(state, dtype=np.float32)
+
             else:
                 state = next_state
 
