@@ -56,9 +56,9 @@ class NStepPrioritizedReplayBuffer:
         # Replay arrays
         self.obs       = np.zeros((capacity, *obs_shape), dtype=np.float32)
         self.next_obs  = np.zeros((capacity, *obs_shape), dtype=np.float32)
-        self.actions   = np.zeros((capacity,), dtype=np.int64)
+        self.actions   = np.zeros((capacity,), dtype=np.int8)
         self.rewards   = np.zeros((capacity,), dtype=np.float32)
-        self.dones     = np.zeros((capacity,), dtype=np.float32)
+        self.dones     = np.zeros((capacity,), dtype=np.bool)
         self.discounts = np.zeros((capacity,), dtype=np.float32)
 
         # PER parameters
@@ -132,9 +132,6 @@ class NStepPrioritizedReplayBuffer:
 
             # Store the n-step transition into replay buffer + SumTree
             self._store(s0, a0, Rn, next_s, dn, g_n)
-
-            self.nstep_buffer.popleft()
-
 
         # Case 2: episode ended
         # When an episode ends, there may still be remaining transitions
@@ -211,6 +208,38 @@ class NStepPrioritizedReplayBuffer:
 
             # Update max priority
             self.max_priority = max(self.max_priority, p)
+
+    def __len__(self):
+        return self.size
+
+class ReplayBuffer:
+    def __init__(self, obs_dim: int, size: int, batch_size: int = 32):
+        self.obs_buf = np.zeros((size, obs_dim), dtype=np.float32)
+        self.next_obs_buf = np.zeros((size, obs_dim), dtype=np.float32)
+        self.acts_buf = np.zeros(size, dtype=np.int8)
+        self.rews_buf = np.zeros(size, dtype=np.float32)
+        self.done_buf = np.zeros(size, dtype=np.bool)
+        self.max_size, self.batch_size = size, batch_size
+        self.ptr, self.size = 0, 0
+
+    def store(self, obs, act, rew, next_obs, done):
+        self.obs_buf[self.ptr] = obs
+        self.next_obs_buf[self.ptr] = next_obs
+        self.acts_buf[self.ptr] = act
+        self.rews_buf[self.ptr] = rew
+        self.done_buf[self.ptr] = done
+        self.ptr = (self.ptr + 1) % self.max_size
+        self.size = min(self.size + 1, self.max_size)
+
+    def sample_batch(self):
+        idxs = np.random.choice(self.size, self.batch_size, replace=False)
+        return dict(
+            obs=self.obs_buf[idxs],
+            next_obs=self.next_obs_buf[idxs],
+            acts=self.acts_buf[idxs],
+            rews=self.rews_buf[idxs],
+            done=self.done_buf[idxs],
+        )
 
     def __len__(self):
         return self.size

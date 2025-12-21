@@ -16,7 +16,7 @@ class C51Distribution:
     def project(self, next_dist, rewards, dones, gammas):
         B = rewards.size(0)
 
-        tz = rewards + (1 - dones) * gammas * self.support.view(1, -1)
+        tz = rewards + (1 - dones.float()) * gammas * self.support.view(1, -1)
         tz = tz.clamp(self.v_min, self.v_max)
 
         b = (tz - self.v_min) / self.delta_z

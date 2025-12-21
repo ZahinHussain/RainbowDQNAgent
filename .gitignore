@@ -3,6 +3,9 @@
 
 # Training runs
 runs/
+*.pth
+*.pt
+*.npy
 
 # Python cache
 __pycache__/
