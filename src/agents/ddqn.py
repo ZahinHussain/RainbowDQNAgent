@@ -75,6 +75,8 @@ class DDQNAgent:
 
         # ---- Logging ----
         self.reward_history = []
+        self.total_frames = 0
+
         self.run_dir = None
         self.run_name = None
 
@@ -123,7 +125,6 @@ class DDQNAgent:
 
         frame = 0
         episode_reward = 0
-
         episode = 0
         final_saved = False
 
@@ -139,6 +140,7 @@ class DDQNAgent:
             done = terminated or truncated
 
             frame += 1
+            self.total_frames += 1
             episode_reward += reward
 
             self.memory.store(state, action, reward, next_state, done)
@@ -156,15 +158,22 @@ class DDQNAgent:
 
             if done:
                 episode += 1
-                self.reward_history.append(episode_reward)
+                self.reward_history.append({
+                    "episode": len(self.reward_history) + 1,
+                    "frames": self.total_frames,
+                    "return": episode_reward
+                })
 
-                if verbose:
-                    avg_100 = np.mean(self.reward_history[-20:])
-                    print(
-                        f"Episode {episode} | "
-                        f"Reward: {episode_reward:.2f} | "
-                        f"Avg Reward (20): {avg_100:.2f}"
-                    )
+                
+                ep = len(self.reward_history)
+                last_returns = [x["return"] for x in self.reward_history[-20:]]
+                avg_100 = np.mean(last_returns)
+                print(
+                    f"Episode {ep} | "
+                    f"frames {self.total_frames} | "
+                    f"Reward: {episode_reward:.2f} | "
+                    f"Avg Reward (100): {avg_100:.2f} | "
+                )
 
                 # -------- SOLVED CONDITION --------
                 if episode >= 20 and avg_100 >= 200.0:

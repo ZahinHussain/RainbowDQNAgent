@@ -33,7 +33,7 @@ def seed_everything(seed: int):
     os.environ["PYTHONHASHSEED"] = str(seed)
 
 def main():
-    seed = 0
+    seed = 2
     seed_everything(0)
 
     config = {
@@ -47,17 +47,17 @@ def main():
         "eps_end": 0.05,
         "eps_decay": 2000,  # steps
 
-        "memory_size": 10_000,
+        "memory_size": 100000,
         "n_step": 1,
 
         "target_update_type": "hard",
-        "target_update_freq": 100,
+        "target_update_freq": 1000,
     }
 
 
     agent = DDQNAgent(config, seed=seed)
 
-    agent.train(max_frames=1_000_000, save_interval=0.2 ,verbose=True)
+    agent.train(max_episodes=1000, save_interval=5 ,verbose=True)
 
 
 if __name__ == "__main__":

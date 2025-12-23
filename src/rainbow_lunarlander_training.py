@@ -33,7 +33,7 @@ def seed_everything(seed: int):
     os.environ["PYTHONHASHSEED"] = str(seed)
 
 def main():
-    seed = 0
+    seed = 2
     seed_everything(seed)
 
     config = {
@@ -42,25 +42,25 @@ def main():
 
         "batch_size": 32,
         "gamma": 0.99,
-        "lr": 5e-4,                
+        "lr": 1e-3,                
         "tau": 0.05,               
 
-        "memory_size": 5_000,      
+        "memory_size": 100000,      
         "n_step": 3,               
 
-        "v_min": -100,
+        "v_min": -300,
         "v_max": 300.0,            
         "atom_size": 31,           
 
         "target_update_type": "hard",
-        "target_update_freq": 5000,  
+        "target_update_freq": 1000,  
     }
 
 
 
     agent = RainbowDQNAgent(config, seed=seed)
 
-    agent.train(max_frames=1_000_000, verbose=True, save_interval=0.2)
+    agent.train(max_episodes=1000, verbose=True, save_interval=5)
 
 
 if __name__ == "__main__":

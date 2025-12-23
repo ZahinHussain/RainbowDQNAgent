@@ -14,7 +14,17 @@ def make_env(env_id: str):
             screen_size=84
         )
         env = FrameStackObservation(env, stack_size=4)
+
+        
     else:
         env = gym.make(env_id)
+        # env = gym.make(
+        #     "LunarLander-v3",
+        #     continuous=False,
+        #     gravity=-11.0,
+        #     enable_wind=True,
+        #     wind_power=5.0,
+        #     turbulence_power=1.5,
+        # )
 
     return env

@@ -76,6 +76,7 @@ class RainbowDQNAgent:
 
         # ---- Logging ----
         self.reward_history = []
+        self.total_frames = 0
         self.run_dir = None
         self.run_name = None
 
@@ -131,9 +132,9 @@ class RainbowDQNAgent:
     # =========================
     # Training Loop
     # =========================
-    def train(self, max_frames=5_000_000, save_interval=30,
+    def train(self, max_episodes=500, max_frames=5_000_000, save_interval=30,
               live_plot_enabled=False, verbose=False, run_name="default"):
-
+        max_episodes = max_episodes
         self.run_name = run_name
         timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
         self.run_dir = os.path.join("runs", f"run-{run_name}-{timestamp}")
@@ -144,6 +145,8 @@ class RainbowDQNAgent:
 
         frame = 0
         episode_reward = 0
+        episode = 0
+
 
         state, _ = self.env.reset(seed=self.seed)
         state = np.asarray(state, dtype=np.float32)
@@ -156,6 +159,7 @@ class RainbowDQNAgent:
             done = terminated or truncated
 
             frame += 1
+            self.total_frames += 1
             episode_reward += reward
 
             self.memory.store(state, action, reward, next_state, done)
@@ -171,16 +175,25 @@ class RainbowDQNAgent:
                         self.hard_update()
 
             if done:
-                self.reward_history.append(episode_reward)
+                episode += 1
+                self.reward_history.append({
+                    "episode": len(self.reward_history) + 1,
+                    "frames": self.total_frames,
+                    "return": episode_reward
+                })
+
 
                 if verbose:
                     ep = len(self.reward_history)
-                    avg_100 = np.mean(self.reward_history[-20:])
+                    last_returns = [x["return"] for x in self.reward_history[-20:]]
+                    avg_100 = np.mean(last_returns)
                     print(
                         f"Episode {ep} | "
+                        f"frames {self.total_frames} | "
                         f"Reward: {episode_reward:.2f} | "
                         f"Avg Reward (100): {avg_100:.2f} | "
                     )
+
                 
                 if ep >= 20 and avg_100 >= 200.0:
                     print("Solved! Saving final model and stopping training.")
@@ -194,6 +207,20 @@ class RainbowDQNAgent:
                         np.array(self.reward_history),
                     )
 
+                    break
+
+                 # -------- MAX EPISODES CONDITION --------
+                if episode >= max_episodes:
+                    print("Max episodes reached. Saving final model.")
+
+                    ts = int(time.time())
+                    self.save_model(os.path.join(self.run_dir, f"model_final_{ts}.pth"))
+                    np.save(
+                        os.path.join(self.run_dir, f"rewards_final_{ts}.npy"),
+                        np.array(self.reward_history),
+                    )
+
+                    final_saved = True
                     break
 
                 episode_reward = 0
