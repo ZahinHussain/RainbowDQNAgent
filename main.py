@@ -14,7 +14,7 @@ def main():
         "eps_decay": 200_000,
         "tau": 0.005,
         "lr": 5e-4,
-        "num_episodes": 10000,
+        "num_episodes": 1000,
    
         "env_name": "ALE/Frostbite-v5",     # LunarLander-v3     ALE/Pong-v5     CartPole-v1
     }

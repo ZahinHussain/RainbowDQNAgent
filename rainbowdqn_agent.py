@@ -64,8 +64,8 @@ class RainbowDQNAgent:
   
         self.c51 = C51Distribution(
            v_min=-10,
-            v_max=300,
-            atom_size=51,
+            v_max=5000,
+            atom_size=107,
             device=self.device
         )
 
@@ -108,7 +108,7 @@ class RainbowDQNAgent:
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=self.lr)
 
         self.memory = NStepPrioritizedReplayBuffer(
-            capacity=250000,
+            capacity=375000,
             obs_shape=self.obs_shape,
             n_step=10,
             gamma=self.gamma
@@ -200,18 +200,7 @@ class RainbowDQNAgent:
                 state = np.array(state, dtype=np.float32, copy=False)
 
 
-            if ep >= 100 and avg_100 >= 200.0:
-                print("Solved LunarLander! Saving final model and stopping training.")
-                self.solved = True
-
-                ts = int(time.time())
-                self.save_model(os.path.join(self.run_dir, f"model_solved_{ts}.pth"))
-                np.save(
-                    os.path.join(self.run_dir, f"rewards_solved_{ts}.npy"),
-                    np.array(self.reward_history),
-                )
-
-                break
+       
 
             # Auto-save every 30 minutes
             if time.time() - last_save_time >= save_interval:

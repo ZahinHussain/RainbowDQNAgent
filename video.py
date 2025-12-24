@@ -49,7 +49,7 @@ def play_video():
 
     # --- MODEL CONFIG (MATCH TRAINING) ---
     num_actions = 18
-    atom_size = 31
+    atom_size = 51
     v_min, v_max = 0, 3000
     support = torch.linspace(v_min, v_max, atom_size).to(device)
 
@@ -60,7 +60,7 @@ def play_video():
     ).to(device)
 
     # --- LOAD CHECKPOINT ---
-    checkpoint_path = r"runs\run-ALE\Frostbite-v5-20251219-185038\model_1766182839.pth"
+    checkpoint_path = r"runs\run-ALE\Frostbite-v5-20251222-121235\model_1766445160.pth"
     checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint["policy_net"])
     model.eval()
