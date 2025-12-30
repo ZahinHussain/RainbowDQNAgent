@@ -22,9 +22,6 @@ class RainbowDQNAgent:
 
         self.batch_size   = config["batch_size"]
         self.gamma        = config["gamma"]
-        self.eps_start    = config["eps_start"]
-        self.eps_end      = config["eps_end"]
-        self.eps_decay    = config["eps_decay"]
         self.tau          = config["tau"]
         self.lr           = config["lr"]
         self.env_id       = config["env_name"]
@@ -64,8 +61,8 @@ class RainbowDQNAgent:
   
         self.c51 = C51Distribution(
            v_min=-10,
-            v_max=5000,
-            atom_size=107,
+            v_max=10,
+            atom_size=51,
             device=self.device
         )
 
@@ -157,6 +154,7 @@ class RainbowDQNAgent:
             action = self.select_action(state)
 
             next_state, reward, terminated, truncated, _ = self.env.step(action)
+            reward = np.clip(reward, -1.0, 1.0)
             next_state = np.array(next_state, dtype=np.float32, copy=False)
             done = terminated or truncated
 

@@ -7,20 +7,15 @@ from rewards import plot_rewards, plot_reward_distribution
 def main():
 
     config = {
-        "batch_size": 128,
+        "batch_size": 32,
         "gamma": 0.99,
-        "eps_start": 1.0,
-        "eps_end": 0.05,
-        "eps_decay": 200_000,
         "tau": 0.005,
         "lr": 5e-4,
         "num_episodes": 1000,
-   
         "env_name": "ALE/Frostbite-v5",     # LunarLander-v3     ALE/Pong-v5     CartPole-v1
     }
 
  
-    # agent = RainbowDQNAgent(config)
     agent = RainbowDQNAgent(config)
     
     # agent.load_model("runs/run-lunar-20251218-105055/model_1766055116.pth")
