@@ -37,7 +37,7 @@ class RainbowDQNAgent:
         self.is_atari = self.env_id.startswith("ALE/")
 
         if self.is_atari:
-            base_env = gym.make(self.env_id, frameskip=1)
+            base_env = gym.make(self.env_id, frameskip=1, full_action_space=False)
 
             env = AtariPreprocessing(
                 base_env,
@@ -142,6 +142,10 @@ class RainbowDQNAgent:
 
         if verbose:
             print(f"[RUN] Saving to {self.run_dir}")
+            print(f"[RUN] Starting training for {max_frames:,} frames...")
+            print(f"[RUN] Environment: {self.env_id}")
+            print(f"[RUN] Batch size: {self.batch_size}, Learning rate: {self.lr}")
+            print("-" * 60)
 
         last_save_time = time.time()
         save_interval = save_interval * 60
@@ -181,19 +185,21 @@ class RainbowDQNAgent:
             # Continue or reset episode
             if not done:
                 state = next_state
-                ep = len(self.reward_history)
-                avg_100 = np.mean(self.reward_history[-100:])
+                # Print progress every 10k frames
+                if verbose and frame % 10000 == 0:
+                    ep = len(self.reward_history)
+                    avg_100 = np.mean(self.reward_history[-100:]) if len(self.reward_history) >= 100 else np.mean(self.reward_history) if len(self.reward_history) > 0 else 0.0
+                    ts = datetime.now().strftime('%H:%M:%S')
+                    print(f"[{ts}] Frame {frame:,}/{max_frames:,} | Episodes: {ep} | Avg(100): {avg_100:.2f}", flush=True)
             else:
                 self.reward_history.append(episode_reward)
 
                 if verbose:
                     ep = len(self.reward_history)
-                    avg_100 = np.mean(self.reward_history[-100:])
-
-
+                    avg_100 = np.mean(self.reward_history[-100:]) if len(self.reward_history) >= 100 else np.mean(self.reward_history) if len(self.reward_history) > 0 else 0.0
                     
                     ts = datetime.now().strftime('%H:%M:%S')
-                    print(f"[{ts}] Episode {ep} | Reward: {episode_reward:.2f}")
+                    print(f"[{ts}] Episode {ep} | Frame {frame:,} | Reward: {episode_reward:.2f} | Avg(100): {avg_100:.2f}", flush=True)
 
                 episode_reward = 0
                 state, _ = self.env.reset()
@@ -310,6 +316,7 @@ class RainbowDQNAgent:
         base_env = gym.make(
             self.env.unwrapped.spec.id,
             frameskip=1,
+            full_action_space=False,
             render_mode="human" if render else None
         )
 
@@ -362,6 +369,7 @@ class RainbowDQNAgent:
         base_env = gym.make(
             self.env.unwrapped.spec.id,
             frameskip=1,
+            full_action_space=False,
             render_mode="human" if render else None
         )
 

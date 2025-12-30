@@ -58,7 +58,7 @@ class NStepPrioritizedReplayBuffer:
         self.next_obs  = np.zeros((capacity, *obs_shape), dtype=np.float32)
         self.actions   = np.zeros((capacity,), dtype=np.int8)
         self.rewards   = np.zeros((capacity,), dtype=np.float32)
-        self.dones     = np.zeros((capacity,), dtype=np.bool)
+        self.dones     = np.zeros((capacity,), dtype=bool)
         self.discounts = np.zeros((capacity,), dtype=np.float32)
 
         # PER parameters
@@ -218,7 +218,7 @@ class ReplayBuffer:
         self.next_obs_buf = np.zeros((size, obs_dim), dtype=np.float32)
         self.acts_buf = np.zeros(size, dtype=np.int8)
         self.rews_buf = np.zeros(size, dtype=np.float32)
-        self.done_buf = np.zeros(size, dtype=np.bool)
+        self.done_buf = np.zeros(size, dtype=bool)
         self.max_size, self.batch_size = size, batch_size
         self.ptr, self.size = 0, 0
 
