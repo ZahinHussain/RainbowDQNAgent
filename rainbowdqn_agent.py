@@ -154,12 +154,12 @@ class RainbowDQNAgent:
             action = self.select_action(state)
 
             next_state, reward, terminated, truncated, _ = self.env.step(action)
+            episode_reward += reward
             reward = np.clip(reward, -1.0, 1.0)
             next_state = np.array(next_state, dtype=np.float32, copy=False)
             done = terminated or truncated
 
             frame += 1
-            episode_reward += reward
 
             # Store transition
             self.memory.store(state, action, reward, next_state, done)
