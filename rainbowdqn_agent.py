@@ -22,6 +22,9 @@ class RainbowDQNAgent:
 
         self.batch_size   = config["batch_size"]
         self.gamma        = config["gamma"]
+        self.eps_start    = config["eps_start"]
+        self.eps_end      = config["eps_end"]
+        self.eps_decay    = config["eps_decay"]
         self.tau          = config["tau"]
         self.lr           = config["lr"]
         self.env_id       = config["env_name"]
@@ -61,11 +64,10 @@ class RainbowDQNAgent:
   
         self.c51 = C51Distribution(
            v_min=-10,
-            v_max=10,
+            v_max=9000,  
             atom_size=51,
             device=self.device
-        )
-
+        ) 
         self.atom_size = self.c51.atom_size
 
 
@@ -105,7 +107,7 @@ class RainbowDQNAgent:
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=self.lr)
 
         self.memory = NStepPrioritizedReplayBuffer(
-            capacity=375000,
+            capacity=250_000,
             obs_shape=self.obs_shape,
             n_step=10,
             gamma=self.gamma
@@ -113,6 +115,7 @@ class RainbowDQNAgent:
 
         self.steps_done = 0
         self.reward_history = []
+        self.time_stamp = []
 
         self.run_dir = None
         self.run_name = None
@@ -154,12 +157,11 @@ class RainbowDQNAgent:
             action = self.select_action(state)
 
             next_state, reward, terminated, truncated, _ = self.env.step(action)
-            episode_reward += reward
-            reward = np.clip(reward, -1.0, 1.0)
             next_state = np.array(next_state, dtype=np.float32, copy=False)
             done = terminated or truncated
 
             frame += 1
+            episode_reward += reward
 
             # Store transition
             self.memory.store(state, action, reward, next_state, done)
@@ -183,6 +185,7 @@ class RainbowDQNAgent:
                 avg_100 = np.mean(self.reward_history[-100:])
             else:
                 self.reward_history.append(episode_reward)
+                self.time_stamp.append(time.time())
 
                 if verbose:
                     ep = len(self.reward_history)
@@ -209,6 +212,10 @@ class RainbowDQNAgent:
                 np.save(
                     os.path.join(self.run_dir, f"rewards_{timestamp}.npy"),
                     np.array(self.reward_history)
+                )
+                np.save(
+                    os.path.join(self.run_dir, f"time_stamps_{timestamp}.npy"),
+                    np.array(self.time_stamp)   
                 )
 
   

@@ -8,14 +8,14 @@ from datetime import datetime
 import os
 import glob
 
-# =====================
+
 # Device
-# =====================
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-# =====================
+
 # Play + record video
-# =====================
+
 def play_video():
     game_name = "Frostbite"
 
@@ -50,7 +50,7 @@ def play_video():
     # --- MODEL CONFIG (MATCH TRAINING) ---
     num_actions = 18
     atom_size = 51
-    v_min, v_max = 0, 3000
+    v_min, v_max = 0, 9000
     support = torch.linspace(v_min, v_max, atom_size).to(device)
 
     model = C51NoisyDuelingCNN(
@@ -59,13 +59,14 @@ def play_video():
         support=support
     ).to(device)
 
+
     # --- LOAD CHECKPOINT ---
-    checkpoint_path = r"runs\run-ALE\Frostbite-v5-20251222-121235\model_1766445160.pth"
+    checkpoint_path = r"runs\run-ALE\Frostbite-v5-20251225-024948\model_1766674198.pth"
     checkpoint = torch.load(checkpoint_path, map_location=device)
     model.load_state_dict(checkpoint["policy_net"])
     model.eval()
 
-    print("🎥 Recording video with trained Rainbow model...")
+    print("Recording video with trained Rainbow model")
 
     obs, _ = env.reset()
     state = torch.from_numpy(np.asarray(obs)).float().unsqueeze(0).to(device)
@@ -87,9 +88,7 @@ def play_video():
 
     env.close()
 
-    # =====================
-    # Rename video file
-    # =====================
+
     video_files = glob.glob(f"./video/{temp_prefix}*.mp4")
     assert len(video_files) == 1, "Expected exactly one video file"
 
@@ -100,15 +99,22 @@ def play_video():
 
     os.rename(video_files[0], final_path)
 
-    # =====================
-    # Print summary
-    # =====================
-    print(f"✅ Video saved to {final_path}")
-    print(f"🏆 Total reward: {total_reward}")
-    print(f"🕒 Created at: {timestamp}")
+  
+    print(f"Video saved to {final_path}")
+    print(f"Total reward: {total_reward}")
+    print(f"Created at: {timestamp}")
 
-# =====================
+
+    if total_reward >= 2900:
+        return True
+    return False
+
+
 # Run
-# =====================
+
 if __name__ == "__main__":
-    play_video()
+
+    success = False
+    while not success:
+        success = play_video()
+   

@@ -1,5 +1,6 @@
 import gymnasium as gym
 import ale_py
+#From the gym docs - https://gymnasium.farama.org/
 
 gym.register_envs(ale_py)
 

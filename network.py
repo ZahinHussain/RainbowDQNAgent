@@ -271,6 +271,7 @@ class DuelingCNN(nn.Module):
             nn.ReLU(),
             nn.Conv2d(64, 64, kernel_size=3, stride=1),
             nn.ReLU(),
+         #   nn.AdaptiveAvgPool2d((7, 7)),
         )
 
         conv_out_size = 64 * 7 * 7

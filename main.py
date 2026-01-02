@@ -7,18 +7,23 @@ from rewards import plot_rewards, plot_reward_distribution
 def main():
 
     config = {
-        "batch_size": 32,
+        "batch_size": 128,
         "gamma": 0.99,
+        "eps_start": 1.0,
+        "eps_end": 0.05,
+        "eps_decay": 200_000,
         "tau": 0.005,
         "lr": 5e-4,
-        "num_episodes": 1000,
+        "num_episodes": 1500,
+   
         "env_name": "ALE/Frostbite-v5",     # LunarLander-v3     ALE/Pong-v5     CartPole-v1
     }
 
  
+    # agent = RainbowDQNAgent(config)
     agent = RainbowDQNAgent(config)
     
-    # agent.load_model("runs/run-lunar-20251218-105055/model_1766055116.pth")
+    #agent.load_model("runs/run-ALE/Frostbite-v5-20251224-194721/model_1766620042.pth")
     # Train
     agent.train(run_name="ALE/Frostbite-v5", max_frames=10_000_000, save_interval = 30, live_plot_enabled=False, verbose=True)
 
